@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import "./App.css";
 
 const API_KEY = process.env.REACT_APP_OPEN_WEATHER_MAP_API_KEY;
@@ -14,7 +14,7 @@ function App() {
   const [searchCity, setSearchCity] = useState(city);
   const [forecast, setForecast] = useState("");
 
-  const fetchCoord = async (): Promise<Coord> => {
+  const fetchCoord = useCallback( async (): Promise<Coord> => {
     let coord;
     try {
       coord = await fetch(`https://${URL}weather?q=${city},uk&appid=${API_KEY}`)
@@ -32,7 +32,7 @@ function App() {
     }
 
     return coord;
-  };
+  }, [city]);
 
   const fetchForecast = (coord: Coord) => {
     if (!coord) {
@@ -54,19 +54,27 @@ function App() {
 
   useEffect(() => {
     fetchCoord().then((coord) => fetchForecast(coord));
-  }, [city]);
+  }, [fetchCoord]);
+
+  const convertUnixToDate = (unix: number): string => {
+    const date = new Date(unix * 1000)
+
+    return `${date.getDate()} - ${date.getMonth() + 1} - ${date.getFullYear()}`
+  }
 
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Weather in {city}</h1>
+        <h1>Weather in {city} for the next 7 days</h1>
         <input
           type="text"
           defaultValue={searchCity}
           onChange={(value) => setSearchCity(value.target.value)}
         />
         <button onClick={() => setCity(searchCity)}>get weather</button>
-        <p>{forecast}</p>
+        {forecast && JSON.parse(forecast).daily.map((day: any) => {
+          return <p key={day.dt}> {convertUnixToDate(day.dt)} {day.weather[0].description}</p>
+        })}
       </header>
     </div>
   );
